@@ -29,6 +29,7 @@ import com.vaadin.client.Console;
 import com.vaadin.client.ElementUtil;
 import com.vaadin.client.ExistingElementMap;
 import com.vaadin.client.InitialPropertiesHandler;
+import com.vaadin.client.LitUtils;
 import com.vaadin.client.PolymerUtils;
 import com.vaadin.client.WidgetUtil;
 import com.vaadin.client.flow.ConstantPool;
@@ -772,7 +773,8 @@ public class SimpleElementBindingStrategy implements BindingStrategy<Element> {
         NodeList children = context.node.getList(NodeFeatures.VIRTUAL_CHILDREN);
 
         for (int i = 0; i < children.length(); i++) {
-            appendVirtualChild(context, (StateNode) children.get(i), true);
+            appendVirtualChild(context, (StateNode) children.get(i), true,
+                    true);
         }
 
         return children.addSpliceListener(e -> {
@@ -786,7 +788,7 @@ public class SimpleElementBindingStrategy implements BindingStrategy<Element> {
                 if (!add.isEmpty()) {
                     for (int i = 0; i < add.length(); i++) {
                         appendVirtualChild(context, (StateNode) add.get(i),
-                                true);
+                                true, true);
                     }
                 }
             });
@@ -794,7 +796,7 @@ public class SimpleElementBindingStrategy implements BindingStrategy<Element> {
     }
 
     private void appendVirtualChild(BindingContext context, StateNode node,
-            boolean reactivePhase) {
+            boolean reactivePhase, boolean mightNeedWaiting) {
         JsonObject object = getPayload(node);
         String type = object.getString(NodeProperties.TYPE);
 
@@ -814,10 +816,18 @@ public class SimpleElementBindingStrategy implements BindingStrategy<Element> {
             if (!verifyAttachRequest(context.node, node, id, address)) {
                 return;
             }
-            if (!PolymerUtils.isReady(context.htmlNode)) {
-                PolymerUtils.addReadyListener((Element) context.htmlNode,
-                        () -> appendVirtualChild(context, node, false));
-                return;
+            if (mightNeedWaiting) {
+                if (LitUtils.isLitElement(context.htmlNode)) {
+                    LitUtils.whenRendered((Element) context.htmlNode,
+                            () -> appendVirtualChild(context, node, false,
+                                    false));
+                    return;
+                } else if (!PolymerUtils.isReady(context.htmlNode)) {
+                    PolymerUtils.addReadyListener((Element) context.htmlNode,
+                            () -> appendVirtualChild(context, node, false,
+                                    false));
+                    return;
+                }
             }
 
             Element existingElement = ElementUtil
@@ -841,7 +851,7 @@ public class SimpleElementBindingStrategy implements BindingStrategy<Element> {
 
             if (PolymerUtils.getDomRoot(context.htmlNode) == null) {
                 PolymerUtils.addReadyListener((Element) context.htmlNode,
-                        () -> appendVirtualChild(context, node, false));
+                        () -> appendVirtualChild(context, node, false, true));
                 return;
             }
 
