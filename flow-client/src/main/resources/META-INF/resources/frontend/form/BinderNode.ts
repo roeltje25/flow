@@ -15,15 +15,20 @@
  */
 import {Binder} from "./Binder";
 import {
+  appendItem,
   AbstractModel,
   ArrayModel,
   binderNodeSymbol,
   getBinderNode,
   getName,
   getValue,
-  keySymbol, ModelSymbol,
+  keySymbol,
+  ModelSymbol,
+  ModelValue,
   ObjectModel,
   parentSymbol,
+  prependItem,
+  removeItem,
   setValue,
   validatorsSymbol
 } from "./Models";
@@ -159,6 +164,47 @@ export class BinderNode<T, M extends AbstractModel<T>> {
     });
   }
 
+  /**
+   * Append an item to the array value.
+   *
+   * Requires the context model to be an array reference.
+   *
+   * @param itemValue optional new item value, empty item is
+   * appended if omitted
+   */
+  appendItem<IT extends ModelValue<M extends ArrayModel<any, infer IM> ? IM : never>>(itemValue?: IT) {
+    if (!(this.model instanceof ArrayModel)) {
+      throw new Error('Model is not an array');
+    }
+
+    appendItem(this.model as ArrayModel<IT, AbstractModel<IT>>, itemValue);
+  }
+
+  /**
+   * Prepend an item to the array value.
+   *
+   * Requires the context model to be an array reference.
+   *
+   * @param itemValue optional new item value, empty item is prepended if
+   * omitted
+   */
+  prependItem<IT extends ModelValue<M extends ArrayModel<any, infer IM> ? IM : never>>(itemValue?: IT) {
+    if (!(this.model instanceof ArrayModel)) {
+      throw new Error('Model is not an array');
+    }
+
+    prependItem(this.model as ArrayModel<IT, AbstractModel<IT>>, itemValue);
+  }
+
+  /**
+   * Prepend an item to the array value.
+   *
+   * Requires the context model to be an array item reference.
+   */
+  removeItem() {
+    removeItem(this.model);
+  }
+
   protected async updateValidation(): Promise<ReadonlyArray<ValueError<any>>> {
     if (this[visitedSymbol]) {
       return this.validate();
@@ -186,7 +232,7 @@ export class BinderNode<T, M extends AbstractModel<T>> {
       }
     } else if (this.model instanceof ArrayModel) {
       for (const childModel of this.model) {
-        yield getBinderNode(childModel);
+        yield childModel;
       }
     }
   }

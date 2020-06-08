@@ -1,5 +1,7 @@
 /* tslint:disable:max-classes-per-file */
 
+import {repeat} from "lit-html/directives/repeat";
+
 const {suite, test, beforeEach, afterEach} = intern.getInterface("tdd");
 const {assert} = intern.getPlugin("chai");
 /// <reference types="sinon">
@@ -12,7 +14,6 @@ import {
   Binder,
   field,
   getName,
-  modelRepeat,
   Required,
   setValue,
   ValidationError,
@@ -42,9 +43,9 @@ class OrderView extends LitElement {
     <input id="fullName" ...="${field(this.binder.model.customer.fullName)}" />
     <input id="nickName" ...="${field(this.binder.model.customer.nickName)}" />
     <button id="add" @click=${() => appendItem(this.binder.model.products)}>+</button>
-    ${modelRepeat(this.binder.model.products, (model, _product, index) => html`<div>
-        <input id="description${index}" ...="${field(model.description)}" />
-        <input id="price${index}" ...="${field(model.price)}">
+    ${repeat(this.binder.model.products, (productNode, index) => html`<div>
+        <input id="description${index}" ...="${field(productNode.model.description)}" />
+        <input id="price${index}" ...="${field(productNode.model.price)}">
       </div>`)}
     `;
   }
